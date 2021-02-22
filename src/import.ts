@@ -72,15 +72,23 @@ const updateCollection = async (
   dataObj: object,
   options: IImportOptions = {}
 ) => {
+  const subCollectionNameList= ['provinces','districts','wards','streets','projects']
   for (var index in dataObj) {
     var collectionName = index
     for (var doc in dataObj[index]) {
       if (dataObj[index].hasOwnProperty(doc)) {
         // asign document id for array type
-        let docId = Array.isArray(dataObj[index]) ? uuidv1() : doc
+        let specificsubcollection = index.split("/");
+        let docId = Array.isArray(dataObj[index]) && subCollectionNameList.includes(specificsubcollection[specificsubcollection.length-1]) ? convertToPascalCase(dataObj[index][doc].name) : doc
+       console.log('Array.isArray(dataObj[index]) :', Array.isArray(dataObj[index]))
         if (!Array.isArray(dataObj[index])) {
-          const subCollections = dataObj[index][docId]['subCollection']
-          delete dataObj[index][doc]['subCollection']
+          let  result= subCollectionNameList.filter(word => dataObj[index][word]);
+   
+          const subCollectionsExist= await result.map(x=> {
+          const subCol = dataObj[index][x];
+          delete dataObj[index][x]
+          return subCol
+          })
           await startUpdating(
             db,
             collectionName,
@@ -89,30 +97,50 @@ const updateCollection = async (
             options
           )
 
-          if (subCollections) {
-            await updateCollection(db, subCollections, options)
-          }
-        } else {
-          const subCollections = dataObj[index][doc]['subCollection']
-
-          delete dataObj[index][doc]['subCollection']
-
-          await startUpdating(
-            db,
-            collectionName,
-            docId,
-            dataObj[index][doc],
-            options
-          )
-
-          if (subCollections) {
-            for (const subIndex in subCollections) {
+          if (subCollectionsExist.length>0){
+            for (const [index,subCollections] of subCollectionsExist.entries()) {
               const revivedSubCollection = {}
-              const subCollectionPath = `${collectionName}/${docId}/${subIndex}`
-              revivedSubCollection[subCollectionPath] = subCollections[subIndex]
+              const subCollectionPath = `${collectionName}/${docId}/${result[index]}`
+              if (result[index]!="projects"){
+                revivedSubCollection[subCollectionPath] = subCollections
+              console.log('sub:', subCollectionsExist,result[index], "before1:",revivedSubCollection, subCollectionPath )
               await updateCollection(db, revivedSubCollection, options)
+              }
+              
             }
           }
+
+
+        } else {
+   
+          let  result= subCollectionNameList.filter(word => dataObj[index][doc][word]);
+          console.log("12", result)
+         const subCollectionsExist=  result.map(x=> {
+          const subCol = dataObj[index][doc][x];
+           delete dataObj[index][doc][x]
+          return subCol
+          })
+          await startUpdating(
+            db,
+            collectionName,
+            docId,
+            dataObj[index][doc],
+            options
+          )
+
+          if (subCollectionsExist.length>0){
+            for (const [index,subCollections] of subCollectionsExist.entries()) {
+              const revivedSubCollection = {}
+              const subCollectionPath = `${collectionName}/${docId}/${result[index]}`
+             
+              if (result[index]!="projects"){
+                revivedSubCollection[subCollectionPath] = subCollections
+                console.log('sub1:', subCollectionsExist,result[index], "before3:",revivedSubCollection, subCollectionPath )
+                await updateCollection(db, revivedSubCollection, options)
+              }
+            }
+          }
+
         }
       }
     }
