@@ -81,10 +81,14 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.restore = void 0;
 var fs = __importStar(require("fs"));
 var admin = __importStar(require("firebase-admin"));
+var latinize_1 = __importDefault(require("latinize"));
 var helper_1 = require("./helper");
 /**
  * Restore data to firestore
@@ -357,5 +361,15 @@ var startUpdating = function (db, collectionName, docId, data, options) {
             });
         });
     });
+};
+/**
+ * Convert name to Pascal Case
+ * @param txt
+ */
+var convertToPascalCase = function (txt) {
+    return latinize_1.default(txt)
+        .toLowerCase()
+        .replace(/[^\w ]+/g, '')
+        .replace(/ +/g, '');
 };
 //# sourceMappingURL=import.js.map

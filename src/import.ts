@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { v1 as uuidv1 } from 'uuid'
 import * as admin from 'firebase-admin'
+import latinize from 'latinize'
 import {
   makeTime,
   traverseObjects,
@@ -247,4 +248,16 @@ const startUpdating = (
         })
       })
   })
+}
+
+/**
+ * Convert name to Pascal Case
+ * @param txt
+ */
+const convertToPascalCase = (txt: string) =>{
+  return latinize(txt)
+      .toLowerCase()
+      .replace(/[^\w ]+/g,'')
+      .replace(/ +/g,'')
+      ;
 }
